@@ -11,6 +11,7 @@ import { HomeAssistantProvider } from './providers/homeassistant.provider';
 import { NukiSmartLockProvider } from './providers/nuki.provider';
 import { GenericHttpProvider } from './providers/generic.provider';
 import { IoTFactoryService } from './iot-factory.service';
+import { FirebaseAuthModule } from '../firebase-auth/firebase-auth.module';
 
 /**
  * Módulo IoT - Gestión de dispositivos inteligentes multi-provider
@@ -27,6 +28,7 @@ import { IoTFactoryService } from './iot-factory.service';
   imports: [
     ConfigModule,
     PrismaModule,
+    FirebaseAuthModule,
   ],
   providers: [
     IoTService,
