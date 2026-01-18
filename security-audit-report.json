@@ -1,0 +1,34 @@
+{
+  "timestamp": "2026-01-18T12:17:36.906Z",
+  "filesScanned": 31,
+  "endpointsAnalyzed": 50,
+  "issuesFound": [
+    {
+      "file": "C:\\Users\\JuanDavidRamírezGarc\\Documents\\GitHub\\smartstay-guide-backend\\src\\modules\\iot\\iot.controller.ts",
+      "line": 54,
+      "severity": "HIGH",
+      "category": "AUTHENTICATION_MISSING",
+      "description": "Endpoint IoT sin autenticación",
+      "currentCode": "  @Get('/device/:deviceId/status')\r",
+      "suggestedFix": "@UseGuards(FirebaseAuthGuard, AdminGuard)",
+      "autoFixable": true
+    },
+    {
+      "file": "C:\\Users\\JuanDavidRamírezGarc\\Documents\\GitHub\\smartstay-guide-backend\\src\\modules\\public-api\\public-api.controller.ts",
+      "line": 37,
+      "severity": "CRITICAL",
+      "category": "AUTHENTICATION_BYPASS",
+      "description": "Endpoint open-lock público sin validación de token",
+      "currentCode": "  @ApiOperation({ summary: 'Get recommendations (partners) for apartment' })\r\n  async getRecommendations(@Param('slug') slug: string) {\r\n    return this.publicApiService.getRecommendations(slug);\r\n  }\r\n\r\n  @Post('actions/open-lock')\r\n  @ApiOperation({ summary: 'Open lock device (requires valid one-time token)' })\r\n  async openLock(\r\n    @Body() body: { slug: string; deviceId: string; token: string },\r\n    @Req() request: Request,\r",
+      "suggestedFix": "\n// SECURITY FIX: Validación completa de token\nasync openLock(slug: string, deviceId: string, token: string, ip?: string) {\n  // 1. Validar token temporal\n  const credential = await this.prisma.accessCredential.findFirst({\n    where: {\n      deviceId,\n      validFrom: { lte: new Date() },\n      validTo: { gte: new Date() },\n      revoked: false,\n    },\n  });\n\n  if (!credential) {\n    await this.logUnauthorizedAccess(slug, deviceId, ip);\n    throw new UnauthorizedException('Token inválido o expirado');\n  }\n\n  // 2. Validar asociación device ↔ apartment\n  const device = await this.prisma.device.findFirst({\n    where: {\n      id: deviceId,\n      unit: { slug, published: true },\n      active: true,\n    },\n    include: { unit: true },\n  });\n\n  if (!device) {\n    throw new NotFoundException('Device not found for this apartment');\n  }\n\n  // 3. Ejecutar apertura\n  const result = await this.iotService.openLock(device);\n\n  // 4. Revocar token (one-time use)\n  await this.prisma.accessCredential.update({\n    where: { id: credential.id },\n    data: { revoked: true },\n  });\n\n  return result;\n}\n\nprivate async logUnauthorizedAccess(slug: string, deviceId: string, ip: string) {\n  await this.prisma.accessLog.create({\n    data: {\n      unitId: (await this.prisma.unit.findUnique({ where: { slug } }))?.id,\n      deviceId,\n      success: false,\n      message: 'Intento no autorizado',\n      metadata: { ip, timestamp: new Date() },\n    },\n  });\n}",
+      "autoFixable": true
+    }
+  ],
+  "issuesFixed": [],
+  "summary": {
+    "critical": 1,
+    "high": 1,
+    "medium": 0,
+    "low": 0
+  }
+}

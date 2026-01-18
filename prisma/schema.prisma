@@ -1,0 +1,597 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["core", "geo", "units", "devices", "partners", "billing"]
+}
+
+model Country {
+  id        String    @id @db.Char(2)
+  name      String
+  companies Company[]
+  cities    City[]
+
+  @@map("countries")
+  @@schema("core")
+}
+
+model Translation {
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key      String
+  language String  @db.Char(2)
+  value    String  @db.Text
+  context  String?
+
+  @@unique([key, language])
+  @@map("translations")
+  @@schema("core")
+}
+
+model Company {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  slug      String   @unique
+  legalName String?  @map("legal_name")
+  taxId     String?  @map("tax_id")
+  countryId String?  @map("country_id") @db.Char(2)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // CHANGE: Añadidos de AuroTek-guest-v1 (FASE 1)
+  logoUrl   String?  @map("logo_url")
+  email     String?
+  phone     String?
+  address   String?
+  city      String?
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  country         Country?         @relation(fields: [countryId], references: [id])
+  users           UserCompany[]
+  units           Unit[]
+  partners        Partner[]
+  billingAccounts BillingAccount[]
+  subscriptions   Subscription[]
+  billingHistory  BillingHistory[] // CHANGE: Nueva relación (FASE 4)
+
+  @@map("companies")
+  @@schema("core")
+}
+
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String?  @map("full_name")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // CHANGE: Añadidos de AuroTek-guest-v1 (FASE 1)
+  firebaseUid String?  @unique @map("firebase_uid")
+  displayName String?  @map("display_name")
+  photoUrl    String?  @map("photo_url")
+  role        String? // ADMIN, MANAGER, PARTNER, SUPPORT
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  companies    UserCompany[]
+  userUnits    UserUnit[]
+  partners     Partner[] // CHANGE: Nueva relación (FASE 1)
+  activityLogs ActivityLog[] // CHANGE: Nueva relación (FASE 1)
+  billingHistory BillingHistory[] // CHANGE: Nueva relación (FASE 4)
+
+  @@index([firebaseUid])
+  @@map("users")
+  @@schema("core")
+}
+
+model Role {
+  id          String  @id
+  description String?
+
+  userCompanies UserCompany[]
+
+  @@map("roles")
+  @@schema("core")
+}
+
+model UserCompany {
+  userId    String  @map("user_id") @db.Uuid
+  companyId String  @map("company_id") @db.Uuid
+  roleId    String? @map("role_id")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  role    Role?   @relation(fields: [roleId], references: [id])
+
+  @@id([userId, companyId])
+  @@map("user_companies")
+  @@schema("core")
+}
+
+model UserUnit {
+  userId String  @map("user_id") @db.Uuid
+  unitId String  @map("unit_id") @db.Uuid
+  role   String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@id([userId, unitId])
+  @@map("user_units")
+  @@schema("core")
+}
+
+model City {
+  id        String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug      String                    @unique
+  name      String
+  countryId String?                   @map("country_id") @db.Char(2)
+  center    Unsupported("geography")?
+  polygon   Unsupported("geography")?
+
+  country Country? @relation(fields: [countryId], references: [id])
+  zones   Zone[]
+  units   Unit[]
+
+  @@map("cities")
+  @@schema("geo")
+}
+
+model Zone {
+  id      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cityId  String?                   @map("city_id") @db.Uuid
+  slug    String?
+  name    String?
+  polygon Unsupported("geography")?
+
+  city          City?              @relation(fields: [cityId], references: [id])
+  neighborhoods ZoneNeighborhood[]
+  units         Unit[]
+  partnerZones  PartnerZone[]
+
+  @@index([cityId])
+  @@map("zones")
+  @@schema("geo")
+}
+
+model ZoneNeighborhood {
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  zoneId String @map("zone_id") @db.Uuid
+  name   String
+
+  zone Zone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  @@map("zone_neighborhoods")
+  @@schema("geo")
+}
+
+model Unit {
+  id        String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId String?                   @map("company_id") @db.Uuid
+  slug      String                    @unique
+  name      String
+  address   String?
+  cityId    String?                   @map("city_id") @db.Uuid
+  zoneId    String?                   @map("zone_id") @db.Uuid
+  location  Unsupported("geography")?
+  createdAt DateTime                  @default(now()) @map("created_at")
+
+  // CHANGE: Añadidos de AuroTek-guest-v1 (FASE 1)
+  images             Json? // { portada, acceso, gallery }
+  hostName           String?  @map("host_name")
+  hostPhone          String?  @map("host_phone")
+  hostPhoto          String?  @map("host_photo")
+  accessType         String?  @map("access_type") // keybox, keypad, smart, physical
+  accessCode         String?  @map("access_code") // Encriptado
+  accessInstructions Json?    @map("access_instructions")
+  languages          String[] @default(["es"])
+  published          Boolean  @default(false)
+  lat                Float? // Temporal: migrar a PostGIS
+  lng                Float? // Temporal: migrar a PostGIS
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
+
+  company         Company?         @relation(fields: [companyId], references: [id])
+  city            City?            @relation(fields: [cityId], references: [id])
+  zone            Zone?            @relation(fields: [zoneId], references: [id])
+  media           UnitMedia[]
+  wifi            UnitWifi?
+  features        UnitFeature[]
+  rules           UnitRule[]
+  devices         Device[]
+  userUnits       UserUnit[]
+  guides          GuideGenerated[]
+  surveyResponses SurveyResponse[]
+  accessLogs      AccessLog[] // CHANGE: Nueva relación (FASE 1)
+  billingHistory  BillingHistory[] // CHANGE: Nueva relación (FASE 4)
+
+  @@index([companyId])
+  @@index([cityId])
+  @@index([zoneId])
+  @@map("units")
+  @@schema("units")
+}
+
+model UnitMedia {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  unitId    String   @map("unit_id") @db.Uuid
+  mediaType String?  @map("media_type")
+  purpose   String?
+  url       String?
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@map("unit_media")
+  @@schema("units")
+}
+
+model UnitWifi {
+  unitId    String   @id @map("unit_id") @db.Uuid
+  network   String?
+  password  Bytes?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@map("unit_wifi")
+  @@schema("units")
+}
+
+model Feature {
+  id   String  @id
+  name String?
+
+  units UnitFeature[]
+
+  @@map("features")
+  @@schema("units")
+}
+
+model UnitFeature {
+  unitId    String @map("unit_id") @db.Uuid
+  featureId String @map("feature_id")
+
+  unit    Unit    @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  feature Feature @relation(fields: [featureId], references: [id])
+
+  @@id([unitId, featureId])
+  @@map("unit_features")
+  @@schema("units")
+}
+
+model Rule {
+  id         String  @id
+  title      String?
+  uiSemantic String? @map("ui_semantic")
+
+  units UnitRule[]
+
+  @@map("rules")
+  @@schema("units")
+}
+
+model UnitRule {
+  unitId String @map("unit_id") @db.Uuid
+  ruleId String @map("rule_id")
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  rule Rule @relation(fields: [ruleId], references: [id])
+
+  @@id([unitId, ruleId])
+  @@map("unit_rules")
+  @@schema("units")
+}
+
+model GuideGenerated {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  unitId      String   @map("unit_id") @db.Uuid
+  language    String   @db.Char(2)
+  payloadJson Json     @map("payload_json")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@unique([unitId, language])
+  @@map("guide_generated")
+  @@schema("units")
+}
+
+model Survey {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  questions Json
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  responses SurveyResponse[]
+
+  @@map("surveys")
+  @@schema("units")
+}
+
+model SurveyResponse {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  surveyId    String   @map("survey_id") @db.Uuid
+  unitId      String   @map("unit_id") @db.Uuid
+  answersJson Json     @map("answers_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  survey Survey @relation(fields: [surveyId], references: [id])
+  unit   Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@map("survey_responses")
+  @@schema("units")
+}
+
+model DeviceType {
+  id   String  @id
+  name String?
+
+  devices Device[]
+
+  @@map("device_types")
+  @@schema("devices")
+}
+
+model Device {
+  id               String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  unitId           String? @map("unit_id") @db.Uuid
+  typeId           String? @map("type_id")
+  externalDeviceId String? @map("external_device_id")
+  provider         String?
+  active           Boolean @default(true)
+
+  // CHANGE: Añadidos de AuroTek-guest-v1 (FASE 1)
+  name         String?
+  config       Json? // Configuración específica del provider
+  instructions Json? // Instrucciones para huéspedes
+  detailsKey   String?  @map("details_key") // Clave de traducción
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  unit        Unit?              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  type        DeviceType?        @relation(fields: [typeId], references: [id])
+  credentials AccessCredential[]
+  accessLogs  AccessLog[] // CHANGE: Nueva relación (FASE 1)
+
+  @@map("devices")
+  @@schema("devices")
+}
+
+model AccessCredential {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deviceId  String?   @map("device_id") @db.Uuid
+  validFrom DateTime? @map("valid_from")
+  validTo   DateTime? @map("valid_to")
+  revoked   Boolean   @default(false)
+
+  device Device? @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@map("access_credentials")
+  @@schema("devices")
+}
+
+model PartnerType {
+  id   String  @id
+  name String?
+
+  partners Partner[]
+
+  @@map("partner_types")
+  @@schema("partners")
+}
+
+model Partner {
+  companyId   String                    @id @map("company_id") @db.Uuid
+  typeId      String?                   @map("type_id")
+  description String?
+  image       String?
+  location    Unsupported("geography")?
+  active      Boolean                   @default(true)
+  isTop       Boolean                   @default(false) @map("is_top")
+  redirectUrl String?                   @map("redirect_url")
+
+  // CHANGE: Añadidos de AuroTek-guest-v1 (FASE 1)
+  userId    String?  @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  company Company       @relation(fields: [companyId], references: [id])
+  type    PartnerType?  @relation(fields: [typeId], references: [id])
+  user    User?         @relation(fields: [userId], references: [id]) // CHANGE: Nueva relación (FASE 1)
+  zones   PartnerZone[]
+
+  @@index([typeId])
+  @@index([userId]) // CHANGE: Nuevo índice (FASE 1)
+  @@map("partners")
+  @@schema("partners")
+}
+
+model PartnerZone {
+  companyId String @map("company_id") @db.Uuid
+  zoneId    String @map("zone_id") @db.Uuid
+
+  partner Partner @relation(fields: [companyId], references: [companyId])
+  zone    Zone    @relation(fields: [zoneId], references: [id])
+
+  @@id([companyId, zoneId])
+  @@map("partner_zones")
+  @@schema("partners")
+}
+
+model PartnerPlan {
+  id       String  @id
+  priority Int?
+  active   Boolean @default(true)
+
+  prices        PlanPrice[]
+  subscriptions Subscription[]
+
+  @@map("partner_plans")
+  @@schema("billing")
+}
+
+model PlanPrice {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  planId    String?   @map("plan_id")
+  price     Decimal?
+  currency  String?   @db.Char(3)
+  validFrom DateTime? @map("valid_from") @db.Date
+  validTo   DateTime? @map("valid_to") @db.Date
+
+  plan PartnerPlan? @relation(fields: [planId], references: [id])
+
+  @@map("plan_prices")
+  @@schema("billing")
+}
+
+model BillingAccount {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId          String?  @map("company_id") @db.Uuid
+  provider           String?
+  externalCustomerId String?  @map("external_customer_id")
+  currency           String?  @db.Char(3)
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  company       Company?       @relation(fields: [companyId], references: [id])
+  subscriptions Subscription[]
+  invoices      Invoice[]
+
+  @@map("billing_accounts")
+  @@schema("billing")
+}
+
+model Subscription {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId              String?   @map("company_id") @db.Uuid
+  billingAccountId       String?   @map("billing_account_id") @db.Uuid
+  planId                 String?   @map("plan_id")
+  externalSubscriptionId String?   @map("external_subscription_id")
+  status                 String?
+  startDate              DateTime? @map("start_date") @db.Date
+  endDate                DateTime? @map("end_date") @db.Date
+
+  company        Company?        @relation(fields: [companyId], references: [id])
+  billingAccount BillingAccount? @relation(fields: [billingAccountId], references: [id])
+  plan           PartnerPlan?    @relation(fields: [planId], references: [id])
+
+  @@index([companyId])
+  @@index([planId])
+  @@map("subscriptions")
+  @@schema("billing")
+}
+
+model Invoice {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  billingAccountId  String?   @map("billing_account_id") @db.Uuid
+  externalInvoiceId String?   @map("external_invoice_id")
+  amount            Decimal?
+  currency          String?   @db.Char(3)
+  status            String?
+  issuedAt          DateTime? @map("issued_at")
+
+  billingAccount BillingAccount? @relation(fields: [billingAccountId], references: [id])
+  payments       Payment[]
+
+  @@map("invoices")
+  @@schema("billing")
+}
+
+model Payment {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoiceId         String?   @map("invoice_id") @db.Uuid
+  externalPaymentId String?   @map("external_payment_id")
+  provider          String?
+  amount            Decimal?
+  status            String?
+  paidAt            DateTime? @map("paid_at")
+
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+
+  @@map("payments")
+  @@schema("billing")
+}
+
+// CHANGE: Nuevas tablas de AuroTek-guest-v1 (FASE 1)
+
+model ActivityLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  entityType String   @map("entity_type") // "unit", "partner", "device"
+  entityId   String   @map("entity_id")
+  action     String // "created", "updated", "deleted"
+  details    Json?
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@map("activity_logs")
+  @@schema("core")
+}
+
+model AccessLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  unitId    String   @map("unit_id") @db.Uuid
+  deviceId  String?  @map("device_id") @db.Uuid
+  action    String // "unlock", "lock", "view"
+  success   Boolean
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  unit   Unit    @relation(fields: [unitId], references: [id])
+  device Device? @relation(fields: [deviceId], references: [id])
+
+  @@index([unitId])
+  @@index([deviceId])
+  @@map("access_logs")
+  @@schema("devices")
+}
+
+// CHANGE: Modelo para registro de eventos de facturación con Stripe (FASE 4)
+model BillingHistory {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  companyId String?  @map("company_id") @db.Uuid
+  unitId    String?  @map("unit_id") @db.Uuid
+
+  // CHANGE: Referencias a objetos de Stripe
+  stripeEventId    String?  @unique @map("stripe_event_id") // evt_xxx
+  stripeCustomerId String?  @map("stripe_customer_id") // cus_xxx
+  stripePaymentId  String?  @map("stripe_payment_id") // pi_xxx o ch_xxx
+  stripeInvoiceId  String?  @map("stripe_invoice_id") // in_xxx
+  
+  // CHANGE: Información del evento
+  eventType    String // payment_intent.succeeded, subscription.created, invoice.paid, etc.
+  amount       Int? // En centavos (ej: 5000 = $50.00 USD)
+  currency     String?  @default("usd")
+  status       String // pending, completed, failed, refunded, canceled
+  
+  // CHANGE: Metadata y debugging
+  metadata     Json? // Datos adicionales del evento (flexible)
+  errorMessage String?  @db.Text @map("error_message")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // CHANGE: Relaciones opcionales
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  unit    Unit?    @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([unitId])
+  @@index([stripeEventId])
+  @@index([stripeCustomerId])
+  @@index([createdAt])
+  @@index([status])
+  @@map("billing_history")
+  @@schema("billing")
+}
