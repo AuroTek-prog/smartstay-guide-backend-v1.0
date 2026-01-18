@@ -569,7 +569,7 @@ model BillingHistory {
   stripeInvoiceId  String?  @map("stripe_invoice_id") // in_xxx
   
   // CHANGE: Información del evento
-  eventType    String // payment_intent.succeeded, subscription.created, invoice.paid, etc.
+  eventType    String @map("event_type") // payment_intent.succeeded, subscription.created, invoice.paid, etc.
   amount       Int? // En centavos (ej: 5000 = $50.00 USD)
   currency     String?  @default("usd")
   status       String // pending, completed, failed, refunded, canceled

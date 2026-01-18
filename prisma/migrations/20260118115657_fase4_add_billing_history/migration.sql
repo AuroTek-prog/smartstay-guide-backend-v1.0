@@ -1,3 +1,7 @@
+CREATE SCHEMA IF NOT EXISTS "billing";
+CREATE SCHEMA IF NOT EXISTS "core";
+CREATE SCHEMA IF NOT EXISTS "units";
+
 -- CreateTable for BillingHistory (FASE 4: Stripe Billing)
 CREATE TABLE IF NOT EXISTS "billing"."billing_history" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),

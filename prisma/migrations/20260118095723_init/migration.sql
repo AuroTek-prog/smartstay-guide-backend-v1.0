@@ -1,3 +1,6 @@
+CREATE SCHEMA IF NOT EXISTS "core";
+CREATE SCHEMA IF NOT EXISTS "units";
+
 -- CreateTable
 CREATE TABLE "core"."translations" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),

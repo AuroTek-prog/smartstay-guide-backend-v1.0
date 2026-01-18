@@ -1,3 +1,8 @@
+CREATE SCHEMA IF NOT EXISTS "core";
+CREATE SCHEMA IF NOT EXISTS "units";
+CREATE SCHEMA IF NOT EXISTS "devices";
+CREATE SCHEMA IF NOT EXISTS "partners";
+
 -- FASE 1: Extender schema con campos de AuroTek-guest-v1
 -- Migración ADITIVA - NO elimina nada existente
 
@@ -16,8 +21,8 @@ ALTER TABLE "core"."users" ADD COLUMN IF NOT EXISTS "photo_url" TEXT;
 ALTER TABLE "core"."users" ADD COLUMN IF NOT EXISTS "role" TEXT;
 ALTER TABLE "core"."users" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
--- Crear índice único para firebase_uid (solo si no existe NULL)
-CREATE UNIQUE INDEX IF NOT EXISTS "users_firebase_uid_key" ON "core"."users"("firebase_uid") WHERE "firebase_uid" IS NOT NULL;
+-- Crear índice único para firebase_uid
+CREATE UNIQUE INDEX IF NOT EXISTS "users_firebase_uid_key" ON "core"."users"("firebase_uid");
 
 -- Crear índice para firebase_uid
 CREATE INDEX IF NOT EXISTS "users_firebase_uid_idx" ON "core"."users"("firebase_uid");

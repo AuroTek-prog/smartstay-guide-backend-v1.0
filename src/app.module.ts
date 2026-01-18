@@ -12,6 +12,7 @@ import { ManagerModule } from './modules/manager/manager.module'; // CHANGE: FAS
 import { AdminModule } from './modules/admin/admin.module'; // CHANGE: FASE 8 - Panel Admin
 import { EmailModule } from './modules/email/email.module'; // CHANGE: FASE 9 - Notificaciones
 import { AnalyticsModule } from './modules/analytics/analytics.module'; // CHANGE: FASE 10 - Métricas
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module'; // CHANG
     AdminModule, // CHANGE: FASE 8
     EmailModule, // CHANGE: FASE 9
     AnalyticsModule, // CHANGE: FASE 10
+    HealthModule,
   ],
 })
 export class AppModule {}
