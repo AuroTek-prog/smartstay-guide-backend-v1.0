@@ -13,6 +13,7 @@ import { AdminModule } from './modules/admin/admin.module'; // CHANGE: FASE 8 - 
 import { EmailModule } from './modules/email/email.module'; // CHANGE: FASE 9 - Notificaciones
 import { AnalyticsModule } from './modules/analytics/analytics.module'; // CHANGE: FASE 10 - Métricas
 import { HealthModule } from './modules/health/health.module';
+import { LocalAuthModule } from './modules/local-auth/local-auth.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { HealthModule } from './modules/health/health.module';
     EmailModule, // CHANGE: FASE 9
     AnalyticsModule, // CHANGE: FASE 10
     HealthModule,
+    LocalAuthModule,
   ],
 })
 export class AppModule {}

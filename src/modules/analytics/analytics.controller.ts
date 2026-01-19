@@ -1,5 +1,5 @@
 import { Controller, Get, Query, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
 
 /**
@@ -18,7 +18,8 @@ export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Get('apartments')
-  @ApiOperation({ summary: 'Métricas de apartamentos' })
+  @ApiOperation({ summary: 'Métricas de apartamentos', description: 'Métricas agregadas por empresa.' })
+  @ApiQuery({ name: 'companyId', required: false, description: 'Filtra por empresa (UUID)' })
   @ApiResponse({ status: 200, description: 'Métricas' })
   async getApartmentMetrics(@Query('companyId') companyId?: string) {
     this.logger.log(`[GET /analytics/apartments] companyId=${companyId}`);
@@ -26,7 +27,8 @@ export class AnalyticsController {
   }
 
   @Get('access')
-  @ApiOperation({ summary: 'Logs de acceso recientes' })
+  @ApiOperation({ summary: 'Logs de acceso recientes', description: 'Devuelve ultimos accesos.' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Limite de resultados (default 50)' })
   @ApiResponse({ status: 200, description: 'Logs' })
   async getAccessLogs(@Query('limit') limit?: string) {
     const limitNum = limit ? parseInt(limit, 10) : 50;
@@ -35,7 +37,8 @@ export class AnalyticsController {
   }
 
   @Get('access-stats')
-  @ApiOperation({ summary: 'Estadísticas de accesos' })
+  @ApiOperation({ summary: 'Estadísticas de accesos', description: 'Agrega accesos por unidad.' })
+  @ApiQuery({ name: 'unitId', required: false, description: 'Filtra por unidad (UUID)' })
   @ApiResponse({ status: 200, description: 'Estadísticas' })
   async getAccessStats(@Query('unitId') unitId?: string) {
     this.logger.log(`[GET /analytics/access-stats] unitId=${unitId}`);

@@ -83,7 +83,18 @@ export class FirebaseAuthService {
       // Buscar si el usuario ya está asociado en nuestra BD
       const localUser = await this.prisma.user.findUnique({
         where: { firebaseUid: decodedToken.uid },
+        select: {
+          id: true,
+          role: true,
+        },
       });
+
+      const roleRecord = localUser?.role
+        ? await this.prisma.role.findUnique({
+            where: { id: localUser.role },
+            select: { permissions: true },
+          })
+        : null;
 
       const firebaseUser: FirebaseUser = {
         uid: decodedToken.uid,
@@ -93,6 +104,8 @@ export class FirebaseAuthService {
         photoURL: decodedToken.picture,
         phoneNumber: decodedToken.phone_number,
         localUserId: localUser?.id,
+        role: localUser?.role || undefined,
+        permissions: roleRecord?.permissions ?? [],
       };
 
       return firebaseUser;

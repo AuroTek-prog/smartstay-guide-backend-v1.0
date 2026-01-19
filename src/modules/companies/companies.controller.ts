@@ -9,15 +9,15 @@ export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Listar companies' })
+  @ApiOperation({ summary: 'Listar companies', description: 'Devuelve todas las empresas.' })
   @ApiResponse({ status: 200, description: 'Lista de companies.' })
   list() {
     return this.companiesService.list();
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener company por id' })
-  @ApiParam({ name: 'id', description: 'UUID de la company' })
+  @ApiOperation({ summary: 'Obtener company por id', description: 'Busca una empresa por UUID.' })
+  @ApiParam({ name: 'id', description: 'UUID de la company', example: '11111111-1111-1111-1111-111111111111' })
   @ApiResponse({ status: 200, description: 'Company encontrada.' })
   @ApiResponse({ status: 404, description: 'Company no encontrada.' })
   getById(@Param('id') id: string) {
@@ -25,7 +25,7 @@ export class CompaniesController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Crear company' })
+  @ApiOperation({ summary: 'Crear company', description: 'Crea una nueva empresa.' })
   @ApiBody({ type: CreateCompanyDto })
   @ApiResponse({ status: 201, description: 'Company creada.' })
   create(@Body() payload: CreateCompanyDto) {
@@ -33,8 +33,8 @@ export class CompaniesController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar company' })
-  @ApiParam({ name: 'id', description: 'UUID de la company' })
+  @ApiOperation({ summary: 'Actualizar company', description: 'Actualiza datos de una empresa.' })
+  @ApiParam({ name: 'id', description: 'UUID de la company', example: '11111111-1111-1111-1111-111111111111' })
   @ApiBody({ type: UpdateCompanyDto })
   @ApiResponse({ status: 200, description: 'Company actualizada.' })
   @ApiResponse({ status: 404, description: 'Company no encontrada.' })
@@ -43,8 +43,8 @@ export class CompaniesController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar company' })
-  @ApiParam({ name: 'id', description: 'UUID de la company' })
+  @ApiOperation({ summary: 'Eliminar company', description: 'Elimina una empresa por UUID.' })
+  @ApiParam({ name: 'id', description: 'UUID de la company', example: '11111111-1111-1111-1111-111111111111' })
   @ApiResponse({ status: 200, description: 'Company eliminada.' })
   @ApiResponse({ status: 404, description: 'Company no encontrada.' })
   remove(@Param('id') id: string) {

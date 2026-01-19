@@ -25,7 +25,12 @@ export class AdminGuard implements CanActivate {
       throw new ForbiddenException('Autenticación requerida para acceso admin');
     }
 
-    // Verificar rol ADMIN
+    const permissions = Array.isArray(user.permissions) ? user.permissions : [];
+    if (permissions.includes('admin:access') || permissions.includes('admin:*')) {
+      return true;
+    }
+
+    // Verificar rol ADMIN si no hay permisos definidos
     if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
       throw new ForbiddenException('Requiere rol ADMIN');
     }

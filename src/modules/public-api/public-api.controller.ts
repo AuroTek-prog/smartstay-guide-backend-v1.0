@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param, Query, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { PublicApiService } from './public-api.service';
 import { Request } from 'express';
 
@@ -9,8 +9,13 @@ export class PublicApiController {
   constructor(private readonly publicApiService: PublicApiService) {}
 
   @Get('guide/:slug')
-  @ApiOperation({ summary: 'Get complete guide for apartment (public endpoint)' })
-  @ApiQuery({ name: 'lang', required: false, description: 'Language code (es, en, fr, de). Default: es' })
+  @ApiOperation({
+    summary: 'Guia completa por apartamento',
+    description: 'Devuelve la guia completa para el slug y el idioma indicado.',
+  })
+  @ApiParam({ name: 'slug', description: 'Slug del apartamento', example: 'sol-101' })
+  @ApiQuery({ name: 'lang', required: false, description: 'Idioma (es, en, fr, de). Default: es' })
+  @ApiResponse({ status: 200, description: 'Guia completa' })
   async getGuide(
     @Param('slug') slug: string,
     @Query('lang') lang: string = 'es',
@@ -19,8 +24,13 @@ export class PublicApiController {
   }
 
   @Get('essentials/:slug')
-  @ApiOperation({ summary: 'Get essentials section only' })
-  @ApiQuery({ name: 'lang', required: false })
+  @ApiOperation({
+    summary: 'Seccion essentials',
+    description: 'Devuelve solo la seccion de esenciales.',
+  })
+  @ApiParam({ name: 'slug', description: 'Slug del apartamento', example: 'sol-101' })
+  @ApiQuery({ name: 'lang', required: false, description: 'Idioma (es, en, fr, de)' })
+  @ApiResponse({ status: 200, description: 'Seccion essentials' })
   async getEssentials(
     @Param('slug') slug: string,
     @Query('lang') lang: string = 'es',
@@ -29,13 +39,28 @@ export class PublicApiController {
   }
 
   @Get('recommendations/:slug')
-  @ApiOperation({ summary: 'Get recommendations (partners) for apartment' })
+  @ApiOperation({
+    summary: 'Recomendaciones de partners',
+    description: 'Lista partners recomendados para el apartamento.',
+  })
+  @ApiParam({ name: 'slug', description: 'Slug del apartamento', example: 'sol-101' })
+  @ApiResponse({ status: 200, description: 'Recomendaciones' })
   async getRecommendations(@Param('slug') slug: string) {
     return this.publicApiService.getRecommendations(slug);
   }
 
   @Post('actions/open-lock')
-  @ApiOperation({ summary: 'Open lock device (requires valid one-time token)' })
+  @ApiOperation({
+    summary: 'Abrir cerradura (token one-time)',
+    description: 'Requiere token de un solo uso generado por la plataforma.',
+  })
+  @ApiBody({
+    schema: {
+      example: { slug: 'sol-101', deviceId: 'device-123', token: 'otp-token' },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Operacion ejecutada' })
+  @ApiResponse({ status: 401, description: 'Token invalido o expirado' })
   async openLock(
     @Body() body: { slug: string; deviceId: string; token: string },
     @Req() request: Request,

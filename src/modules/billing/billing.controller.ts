@@ -11,7 +11,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { Request } from 'express';
 import { BillingService } from './billing.service';
 import { WebhookService } from './webhook.service';
@@ -37,7 +37,11 @@ export class BillingController {
    */
   @Post('/create-payment-intent')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Crea un Payment Intent de Stripe' })
+  @ApiOperation({
+    summary: 'Crea un Payment Intent de Stripe',
+    description: 'Devuelve el PaymentIntent listo para confirmar en el frontend.',
+  })
+  @ApiBody({ type: CreatePaymentIntentDto })
   @ApiResponse({ status: 200, description: 'Payment Intent creado' })
   @ApiResponse({ status: 503, description: 'Stripe deshabilitado' })
   async createPaymentIntent(@Body() dto: CreatePaymentIntentDto) {
@@ -51,7 +55,10 @@ export class BillingController {
    */
   @Post('/webhook')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Webhook de Stripe (solo para Stripe)' })
+  @ApiOperation({
+    summary: 'Webhook de Stripe',
+    description: 'Recibe eventos de Stripe y valida la signature.',
+  })
   @ApiResponse({ status: 200, description: 'Evento procesado' })
   @ApiResponse({ status: 401, description: 'Signature inválida' })
   async handleWebhook(
@@ -81,11 +88,15 @@ export class BillingController {
    * CHANGE: Endpoint para consultar historial
    */
   @Get('/history')
-  @ApiOperation({ summary: 'Obtiene historial de billing' })
-  @ApiQuery({ name: 'userId', required: false })
-  @ApiQuery({ name: 'companyId', required: false })
-  @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'limit', required: false })
+  @ApiOperation({
+    summary: 'Obtiene historial de billing',
+    description: 'Permite filtrar por usuario, empresa, unidad o estado.',
+  })
+  @ApiQuery({ name: 'userId', required: false, description: 'Filtra por usuario (UUID)' })
+  @ApiQuery({ name: 'companyId', required: false, description: 'Filtra por empresa (UUID)' })
+  @ApiQuery({ name: 'unitId', required: false, description: 'Filtra por unidad (UUID)' })
+  @ApiQuery({ name: 'status', required: false, description: 'Estado del evento' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Limite de resultados' })
   @ApiResponse({ status: 200, description: 'Historial de billing' })
   async getBillingHistory(
     @Query('userId') userId?: string,
@@ -108,7 +119,10 @@ export class BillingController {
    * CHANGE: Endpoint para consultar estado de pago
    */
   @Get('/payment-intent/:id')
-  @ApiOperation({ summary: 'Obtiene detalles de un Payment Intent' })
+  @ApiOperation({
+    summary: 'Obtiene detalles de un Payment Intent',
+    description: 'Consulta el estado actual del PaymentIntent en Stripe.',
+  })
   @ApiResponse({ status: 200, description: 'Detalles del Payment Intent' })
   async getPaymentIntentDetails(@Param('id') id: string) {
     return this.billingService.getPaymentIntentDetails(id);
@@ -119,9 +133,12 @@ export class BillingController {
    * CHANGE: Endpoint para dashboard/analytics
    */
   @Get('/stats')
-  @ApiOperation({ summary: 'Obtiene estadísticas de billing' })
-  @ApiQuery({ name: 'companyId', required: false })
-  @ApiQuery({ name: 'userId', required: false })
+  @ApiOperation({
+    summary: 'Obtiene estadísticas de billing',
+    description: 'Agrega datos de eventos de pago por empresa o usuario.',
+  })
+  @ApiQuery({ name: 'companyId', required: false, description: 'Filtra por empresa (UUID)' })
+  @ApiQuery({ name: 'userId', required: false, description: 'Filtra por usuario (UUID)' })
   @ApiResponse({ status: 200, description: 'Estadísticas de billing' })
   async getBillingStats(
     @Query('companyId') companyId?: string,

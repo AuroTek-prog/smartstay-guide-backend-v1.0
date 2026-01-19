@@ -67,6 +67,11 @@ export function validateEnv(): void {
     }
   }
 
+  const localAuthEnabled = process.env.LOCAL_AUTH_ENABLED !== 'false';
+  if (localAuthEnabled && !process.env.JWT_SECRET) {
+    errors.push('JWT_SECRET is required when LOCAL_AUTH_ENABLED is not false');
+  }
+
   if (errors.length > 0) {
     const message =
       'Invalid environment configuration:\n' +

@@ -37,4 +37,14 @@ export interface FirebaseUser {
    * ID del usuario en nuestra base de datos (si está asociado)
    */
   localUserId?: string;
+
+  /**
+   * Rol asignado en la base de datos (ej: ADMIN, MANAGER)
+   */
+  role?: string;
+
+  /**
+   * Permisos del rol en la base de datos
+   */
+  permissions?: string[];
 }

@@ -8,18 +8,21 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiProperty } from '@nestjs/swagger';
 import { FirebaseAuthService } from './firebase-auth.service';
 import { PrismaService } from '../../common/prisma.service';
 import { RequireAuth } from './decorators/require-auth.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { FirebaseUser } from './interfaces/firebase-user.interface';
+import * as bcrypt from 'bcrypt';
 
 class LinkFirebaseDto {
+  @ApiProperty({ description: 'ID del usuario local a vincular', example: '11111111-1111-1111-1111-111111111111' })
   userId: string;
 }
 
 class UnlinkFirebaseDto {
+  @ApiProperty({ description: 'ID del usuario local a desvincular', example: '11111111-1111-1111-1111-111111111111' })
   userId: string;
 }
 
@@ -35,8 +38,17 @@ export class FirebaseAuthController {
    * Endpoint para verificar si Firebase está habilitado
    */
   @Get('/status')
-  @ApiOperation({ summary: 'Verifica si Firebase Auth está habilitado' })
-  @ApiResponse({ status: 200, description: 'Estado de Firebase' })
+  @ApiOperation({
+    summary: 'Estado de Firebase Auth',
+    description: 'Indica si Firebase Admin SDK está activo y configurado.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado de Firebase',
+    schema: {
+      example: { enabled: true, message: 'Firebase Auth está activo' },
+    },
+  })
   getStatus() {
     return {
       enabled: this.firebaseAuthService.isEnabled(),
@@ -54,7 +66,11 @@ export class FirebaseAuthController {
   @RequireAuth()
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Asocia Firebase UID con usuario existente' })
+  @ApiOperation({
+    summary: 'Asocia Firebase UID con usuario existente',
+    description: 'Requiere token de Firebase. Vincula el UID al usuario local indicado.',
+  })
+  @ApiBody({ type: LinkFirebaseDto })
   @ApiResponse({ status: 200, description: 'Usuario asociado correctamente' })
   @ApiResponse({ status: 400, description: 'Firebase no habilitado o datos inválidos' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
@@ -104,7 +120,11 @@ export class FirebaseAuthController {
   @RequireAuth()
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Desasocia Firebase UID de un usuario' })
+  @ApiOperation({
+    summary: 'Desasocia Firebase UID de un usuario',
+    description: 'Requiere token de Firebase. Remueve el UID del usuario local.',
+  })
+  @ApiBody({ type: UnlinkFirebaseDto })
   @ApiResponse({ status: 200, description: 'Firebase UID removido' })
   async unlinkFirebase(@Body() dto: UnlinkFirebaseDto) {
     if (!this.firebaseAuthService.isEnabled()) {
@@ -120,12 +140,77 @@ export class FirebaseAuthController {
   }
 
   /**
+   * Asegura que existe un usuario local asociado al Firebase UID
+   * - Si existe por firebase_uid, retorna ese usuario
+   * - Si existe por email, vincula firebase_uid
+   * - Si no existe, crea usuario local con rol GUEST
+   */
+  @Post('/ensure-user')
+  @RequireAuth()
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Crea o vincula usuario local usando Firebase Auth',
+    description:
+      'Si existe por firebase_uid retorna el usuario. Si existe por email, vincula el UID. Si no existe, crea un usuario con rol GUEST.',
+  })
+  @ApiResponse({ status: 200, description: 'Usuario local asegurado' })
+  async ensureUser(@CurrentUser() firebaseUser: FirebaseUser) {
+    if (!this.firebaseAuthService.isEnabled()) {
+      throw new BadRequestException('Firebase Auth no está habilitado');
+    }
+
+    if (!firebaseUser.email) {
+      throw new BadRequestException('Email requerido para vincular usuario');
+    }
+
+    const existingByUid = await this.prisma.user.findUnique({
+      where: { firebaseUid: firebaseUser.uid },
+    });
+    if (existingByUid) {
+      return { linked: true, user: existingByUid };
+    }
+
+    const existingByEmail = await this.prisma.user.findUnique({
+      where: { email: firebaseUser.email },
+    });
+
+    if (existingByEmail) {
+      const updated = await this.prisma.user.update({
+        where: { id: existingByEmail.id },
+        data: { firebaseUid: firebaseUser.uid },
+      });
+      return { linked: true, user: updated };
+    }
+
+    const randomHash = await bcrypt.hash(
+      `${firebaseUser.uid}-${Date.now()}`,
+      10,
+    );
+    const created = await this.prisma.user.create({
+      data: {
+        email: firebaseUser.email,
+        fullName: firebaseUser.displayName,
+        firebaseUid: firebaseUser.uid,
+        role: 'GUEST',
+        active: true,
+        passwordHash: randomHash,
+      },
+    });
+
+    return { linked: true, user: created };
+  }
+
+  /**
    * Endpoint de prueba para verificar autenticación
    */
   @Get('/me')
   @RequireAuth()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Obtiene información del usuario autenticado' })
+  @ApiOperation({
+    summary: 'Obtiene información del usuario autenticado',
+    description: 'Devuelve datos de Firebase + perfil local si existe.',
+  })
   @ApiResponse({ status: 200, description: 'Información del usuario' })
   async getCurrentUser(@CurrentUser() firebaseUser: FirebaseUser) {
     return {

@@ -8,12 +8,13 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam, ApiProperty } from '@nestjs/swagger';
 import { IoTService } from './iot.service';
 import { FirebaseAuthGuard } from '../firebase-auth/firebase-auth.guard';
 import { AdminGuard } from '../admin/guards/admin.guard';
 
 class OpenDoorDto {
+  @ApiProperty({ description: 'ID del dispositivo', example: 'device-123' })
   deviceId: string;
 }
 
@@ -34,7 +35,11 @@ export class IoTController {
    */
   @Post('/open-door')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Abre una cerradura por ID de dispositivo (ADMIN only)' })
+  @ApiOperation({
+    summary: 'Abre una cerradura por ID de dispositivo (ADMIN only)',
+    description: 'Ejecuta comando de apertura en el proveedor IoT configurado.',
+  })
+  @ApiBody({ type: OpenDoorDto })
   @ApiResponse({ status: 200, description: 'Operación ejecutada' })
   @ApiResponse({ status: 404, description: 'Dispositivo no encontrado' })
   @ApiResponse({ status: 401, description: 'No autenticado' })
@@ -52,7 +57,11 @@ export class IoTController {
    * SECURITY: Requiere autenticación + rol ADMIN
    */
   @Get('/device/:deviceId/status')
-  @ApiOperation({ summary: 'Consulta el estado de un dispositivo IoT (ADMIN only)' })
+  @ApiOperation({
+    summary: 'Consulta el estado de un dispositivo IoT (ADMIN only)',
+    description: 'Consulta el estado actual del dispositivo en el proveedor.',
+  })
+  @ApiParam({ name: 'deviceId', description: 'ID del dispositivo', example: 'device-123' })
   @ApiResponse({ status: 200, description: 'Estado del dispositivo' })
   @ApiResponse({ status: 404, description: 'Dispositivo no encontrado' })
   @ApiResponse({ status: 401, description: 'No autenticado' })

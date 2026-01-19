@@ -8,6 +8,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { FirebaseAuthService } from './firebase-auth.service';
 import { OPTIONAL_AUTH_KEY } from './decorators/optional-auth.decorator';
+import { verifyLocalToken } from '../../common/local-jwt';
 
 @Injectable()
 export class FirebaseAuthGuard implements CanActivate {
@@ -28,7 +29,8 @@ export class FirebaseAuthGuard implements CanActivate {
         request.firebaseUser = {
           uid: 'demo-user',
           email: 'demo@smartstay.com',
-          role: 'DEMO',
+          role: 'ADMIN',
+          permissions: ['admin:access'],
         };
         this.logger.warn('⚠️ Acceso con token de desarrollo');
         return true;
@@ -53,7 +55,33 @@ export class FirebaseAuthGuard implements CanActivate {
       throw new UnauthorizedException('Token de autenticación requerido');
     }
 
-    // Extraer token (formato: "Bearer <token>")
+    // Soportar token local: "Local <token>"
+    if (/^Local\s+/i.test(authHeader)) {
+      const token = authHeader.replace(/^Local\s+/i, '');
+      if (!token) {
+        throw new UnauthorizedException('Formato de token inválido');
+      }
+      try {
+        const payload = verifyLocalToken(token);
+        request.firebaseUser = {
+          uid: payload.sub,
+          email: payload.email,
+          role: payload.role,
+          permissions: payload.permissions,
+          localUserId: payload.sub,
+          emailVerified: true,
+        };
+        return true;
+      } catch (error) {
+        if (isOptional) {
+          this.logger.debug('Token local inválido pero auth opcional, permitiendo acceso');
+          return true;
+        }
+        throw new UnauthorizedException('Token local inválido o expirado');
+      }
+    }
+
+    // Extraer token Firebase (formato: "Bearer <token>")
     const token = authHeader.replace(/^Bearer\s+/i, '');
     if (!token) {
       if (isOptional) {

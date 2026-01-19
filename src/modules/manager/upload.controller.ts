@@ -12,12 +12,31 @@ import {
   Logger,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
-import { diskStorage } from 'multer';
+import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync, unlinkSync, readdirSync } from 'fs';
 import { OptionalAuth } from '../firebase-auth/decorators/optional-auth.decorator';
 import { CurrentUser } from '../firebase-auth/decorators/current-user.decorator';
+import { FirebaseUser } from '../firebase-auth/interfaces/firebase-user.interface';
+import { resolveUserId } from '../../common/auth/user-context';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = /jpeg|jpg|png|webp/;
+
+function imageFileFilter(
+  _req: unknown,
+  file: Express.Multer.File,
+  cb: (error: Error | null, acceptFile: boolean) => void,
+) {
+  const extValid = ALLOWED_IMAGE_TYPES.test(extname(file.originalname).toLowerCase());
+  const mimeValid = ALLOWED_IMAGE_TYPES.test(file.mimetype);
+
+  if (extValid && mimeValid) {
+    cb(null, true);
+  } else {
+    cb(new BadRequestException('Solo se permiten imágenes (JPEG, PNG, WebP)'), false);
+  }
+}
 
 /**
  * CHANGE: UploadController - Gestión de imágenes de apartamentos
@@ -41,7 +60,6 @@ import { CurrentUser } from '../firebase-auth/decorators/current-user.decorator'
 export class UploadController {
   private readonly logger = new Logger(UploadController.name);
   private readonly uploadPath = join(process.cwd(), 'assets', 'images', 'apartments');
-  private readonly maxFileSize = 5 * 1024 * 1024; // 5MB
 
   constructor() {
     // CHANGE: Crear carpeta assets si no existe
@@ -52,81 +70,38 @@ export class UploadController {
   }
 
   /**
-   * CHANGE: Configuración de Multer para storage
-   */
-  private getMulterOptions(apartmentSlug: string) {
-    return {
-      storage: diskStorage({
-        destination: (req, file, cb) => {
-          const destPath = join(this.uploadPath, apartmentSlug);
-          if (!existsSync(destPath)) {
-            mkdirSync(destPath, { recursive: true });
-          }
-          cb(null, destPath);
-        },
-        filename: (req, file, cb) => {
-          const imageType = req.body?.imageType || 'other';
-          const ext = extname(file.originalname);
-
-          // CHANGE: Nombres estándar: portada.jpg, acceso.jpg, host.jpg
-          let filename = `${imageType}${ext}`;
-
-          if (imageType === 'other') {
-            // CHANGE: Para imágenes adicionales, usar timestamp
-            filename = `${Date.now()}${ext}`;
-          }
-
-          cb(null, filename);
-        },
-      }),
-      limits: {
-        fileSize: this.maxFileSize,
-      },
-      fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|webp/;
-        const extValid = allowedTypes.test(extname(file.originalname).toLowerCase());
-        const mimeValid = allowedTypes.test(file.mimetype);
-
-        if (extValid && mimeValid) {
-          cb(null, true);
-        } else {
-          cb(new BadRequestException('Solo se permiten imágenes (JPEG, PNG, WebP)'), false);
-        }
-      },
-    };
-  }
-
-  /**
    * CHANGE: Subir una imagen
    */
   @Post('image')
   @ApiOperation({ summary: 'Subir una imagen para un apartamento' })
   @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        image: { type: 'string', format: 'binary' },
+        apartmentSlug: { type: 'string', example: 'sol-101' },
+        imageType: { type: 'string', example: 'portada' },
+      },
+      required: ['image', 'apartmentSlug'],
+    },
+  })
   @ApiResponse({ status: 201, description: 'Imagen subida exitosamente' })
   @ApiResponse({ status: 400, description: 'Tipo de archivo no permitido o tamaño excedido' })
   @ApiBearerAuth()
   @UseInterceptors(
     FileInterceptor('image', {
-      limits: { fileSize: 5 * 1024 * 1024 },
-      fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|webp/;
-        const extValid = allowedTypes.test(extname(file.originalname).toLowerCase());
-        const mimeValid = allowedTypes.test(file.mimetype);
-        if (extValid && mimeValid) {
-          cb(null, true);
-        } else {
-          cb(new BadRequestException('Solo se permiten imágenes (JPEG, PNG, WebP)'), false);
-        }
-      },
+      limits: { fileSize: MAX_FILE_SIZE },
+      fileFilter: imageFileFilter,
     }),
   )
   async uploadImage(
-    @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,
     @Body('apartmentSlug') apartmentSlug: string,
-    @Body('imageType') imageType?: string,
+    @CurrentUser() user: FirebaseUser | undefined,
+    @Body('imageType') imageType: string | undefined,
   ) {
-    const userId = user?.uid || 'demo-user';
+    const userId = resolveUserId(user);
     this.logger.log(`[UPLOAD] Usuario ${userId} subiendo imagen para ${apartmentSlug}`);
 
     if (!file) {
@@ -146,7 +121,6 @@ export class UploadController {
     const type = imageType || 'other';
     const ext = extname(file.originalname);
     const filename = type === 'other' ? `${Date.now()}${ext}` : `${type}${ext}`;
-    const finalPath = join(destPath, filename);
 
     // CHANGE: Usar file.path si multer ya lo guardó
     const relativePath = `assets/images/apartments/${apartmentSlug}/${filename}`;
@@ -168,29 +142,30 @@ export class UploadController {
   @Post('images')
   @ApiOperation({ summary: 'Subir múltiples imágenes' })
   @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        images: { type: 'array', items: { type: 'string', format: 'binary' } },
+        apartmentSlug: { type: 'string', example: 'sol-101' },
+      },
+      required: ['images', 'apartmentSlug'],
+    },
+  })
   @ApiResponse({ status: 201, description: 'Imágenes subidas exitosamente' })
   @ApiBearerAuth()
   @UseInterceptors(
     FilesInterceptor('images', 10, {
-      limits: { fileSize: 5 * 1024 * 1024 },
-      fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|webp/;
-        const extValid = allowedTypes.test(extname(file.originalname).toLowerCase());
-        const mimeValid = allowedTypes.test(file.mimetype);
-        if (extValid && mimeValid) {
-          cb(null, true);
-        } else {
-          cb(new BadRequestException('Solo se permiten imágenes (JPEG, PNG, WebP)'), false);
-        }
-      },
+      limits: { fileSize: MAX_FILE_SIZE },
+      fileFilter: imageFileFilter,
     }),
   )
   async uploadImages(
-    @CurrentUser() user: any,
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Body('apartmentSlug') apartmentSlug: string,
+    @CurrentUser() user: FirebaseUser | undefined,
   ) {
-    const userId = user?.uid || 'demo-user';
+    const userId = resolveUserId(user);
     this.logger.log(`[UPLOAD MULTIPLE] Usuario ${userId} subiendo ${files?.length || 0} imágenes para ${apartmentSlug}`);
 
     if (!files || files.length === 0) {
@@ -235,14 +210,19 @@ export class UploadController {
    */
   @Delete('image')
   @ApiOperation({ summary: 'Eliminar una imagen' })
+  @ApiBody({
+    schema: {
+      example: { path: 'assets/images/apartments/sol-101/portada.jpg' },
+    },
+  })
   @ApiResponse({ status: 200, description: 'Imagen eliminada' })
   @ApiResponse({ status: 400, description: 'Path inválido' })
   @ApiBearerAuth()
   async deleteImage(
-    @CurrentUser() user: any,
     @Body('path') imagePath: string,
+    @CurrentUser() user: FirebaseUser | undefined,
   ) {
-    const userId = user?.uid || 'demo-user';
+    const userId = resolveUserId(user);
     this.logger.log(`[DELETE] Usuario ${userId} eliminando imagen: ${imagePath}`);
 
     if (!imagePath || !imagePath.startsWith('assets/images/apartments/')) {
@@ -271,13 +251,14 @@ export class UploadController {
    */
   @Get('images/:slug')
   @ApiOperation({ summary: 'Listar todas las imágenes de un apartamento' })
+  @ApiParam({ name: 'slug', description: 'Slug del apartamento', example: 'sol-101' })
   @ApiResponse({ status: 200, description: 'Lista de imágenes' })
   @ApiBearerAuth()
   async listImages(
-    @CurrentUser() user: any,
     @Param('slug') apartmentSlug: string,
+    @CurrentUser() user: FirebaseUser | undefined,
   ) {
-    const userId = user?.uid || 'demo-user';
+    const userId = resolveUserId(user);
     this.logger.log(`[LIST] Usuario ${userId} listando imágenes de ${apartmentSlug}`);
 
     const dirPath = join(this.uploadPath, apartmentSlug);

@@ -1,0 +1,2 @@
+ALTER TABLE "core"."roles"
+ADD COLUMN IF NOT EXISTS "permissions" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

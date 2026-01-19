@@ -16,8 +16,25 @@ export class HealthController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Healthcheck básico (DB/Firebase/Stripe)' })
-  @ApiResponse({ status: 200, description: 'Estado de salud del servicio' })
+  @ApiOperation({
+    summary: 'Healthcheck básico',
+    description: 'Devuelve estado general y chequeos de DB/Firebase/Stripe.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado de salud del servicio',
+    schema: {
+      example: {
+        status: 'ok',
+        timestamp: '2026-01-18T20:00:00.000Z',
+        checks: {
+          db: { status: 'ok', latencyMs: 12 },
+          firebase: { status: 'ok' },
+          stripe: { status: 'disabled', mode: 'test' },
+        },
+      },
+    },
+  })
   async getHealth() {
     const dbCheck = await this.checkDatabase();
     const firebaseCheck = this.checkFirebase();
