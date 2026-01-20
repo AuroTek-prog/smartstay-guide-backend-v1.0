@@ -2,12 +2,13 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../common/prisma.module';
 import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
+import { FirebaseAuthModule } from '../firebase-auth/firebase-auth.module';
 
 /**
  * CHANGE: AnalyticsModule - Métricas y estadísticas (FASE 10)
  */
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, FirebaseAuthModule],
   controllers: [AnalyticsController],
   providers: [AnalyticsService],
   exports: [AnalyticsService],

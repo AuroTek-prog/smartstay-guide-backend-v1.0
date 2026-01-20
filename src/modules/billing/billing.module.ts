@@ -4,6 +4,7 @@ import { BillingController } from './billing.controller';
 import { BillingService } from './billing.service';
 import { StripeService } from './stripe.service';
 import { WebhookService } from './webhook.service';
+import { FirebaseAuthModule } from '../firebase-auth/firebase-auth.module';
 
 /**
  * Módulo de Billing - Integración con Stripe
@@ -25,7 +26,7 @@ import { WebhookService } from './webhook.service';
  * - GET  /billing/stats
  */
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, FirebaseAuthModule],
   controllers: [BillingController],
   providers: [
     BillingService,
