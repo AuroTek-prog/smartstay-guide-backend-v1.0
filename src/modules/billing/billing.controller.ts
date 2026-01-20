@@ -11,11 +11,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { Request } from 'express';
 import { BillingService } from './billing.service';
 import { WebhookService } from './webhook.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
+import { RequireAuth } from '../firebase-auth/decorators/require-auth.decorator';
 
 /**
  * Controlador de Billing
@@ -36,6 +37,8 @@ export class BillingController {
    * CHANGE: Endpoint nuevo para iniciar pagos
    */
   @Post('/create-payment-intent')
+  @RequireAuth()
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Crea un Payment Intent de Stripe',
@@ -88,6 +91,8 @@ export class BillingController {
    * CHANGE: Endpoint para consultar historial
    */
   @Get('/history')
+  @RequireAuth()
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Obtiene historial de billing',
     description: 'Permite filtrar por usuario, empresa, unidad o estado.',
@@ -119,6 +124,8 @@ export class BillingController {
    * CHANGE: Endpoint para consultar estado de pago
    */
   @Get('/payment-intent/:id')
+  @RequireAuth()
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Obtiene detalles de un Payment Intent',
     description: 'Consulta el estado actual del PaymentIntent en Stripe.',
@@ -133,6 +140,8 @@ export class BillingController {
    * CHANGE: Endpoint para dashboard/analytics
    */
   @Get('/stats')
+  @RequireAuth()
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Obtiene estadísticas de billing',
     description: 'Agrega datos de eventos de pago por empresa o usuario.',

@@ -1,6 +1,7 @@
 import { Controller, Get, Query, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
+import { RequireAuth } from '../firebase-auth/decorators/require-auth.decorator';
 
 /**
  * CHANGE: AnalyticsController - Endpoints de métricas (FASE 10)
@@ -12,6 +13,8 @@ import { AnalyticsService } from './analytics.service';
  */
 @ApiTags('Analytics')
 @Controller('api/analytics')
+@RequireAuth()
+@ApiBearerAuth()
 export class AnalyticsController {
   private readonly logger = new Logger(AnalyticsController.name);
 

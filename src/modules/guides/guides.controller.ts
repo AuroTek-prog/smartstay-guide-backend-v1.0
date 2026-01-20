@@ -1,6 +1,7 @@
 import { Controller, Get, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { GuidesService } from './guides.service';
+import { RequireAuth } from '../firebase-auth/decorators/require-auth.decorator';
 
 @ApiTags('guides')
 @Controller('guides')
@@ -23,6 +24,8 @@ export class GuidesController {
   }
 
   @Get('generate/:unitId/:language')
+  @RequireAuth()
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Generar guia para una unidad',
     description: 'Genera o regenera la guia para el idioma indicado.',

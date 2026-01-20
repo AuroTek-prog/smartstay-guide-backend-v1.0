@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Body, Param, Query, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiQuery, ApiParam, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { PublicApiService } from './public-api.service';
 import { Request } from 'express';
+import { RequireAuth } from '../firebase-auth/decorators/require-auth.decorator';
 
 @ApiTags('public')
 @Controller('api/public')
@@ -9,6 +10,8 @@ export class PublicApiController {
   constructor(private readonly publicApiService: PublicApiService) {}
 
   @Get('guide/:slug')
+  @RequireAuth()
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Guia completa por apartamento',
     description: 'Devuelve la guia completa para el slug y el idioma indicado.',
@@ -24,6 +27,8 @@ export class PublicApiController {
   }
 
   @Get('essentials/:slug')
+  @RequireAuth()
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Seccion essentials',
     description: 'Devuelve solo la seccion de esenciales.',
@@ -39,6 +44,8 @@ export class PublicApiController {
   }
 
   @Get('recommendations/:slug')
+  @RequireAuth()
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Recomendaciones de partners',
     description: 'Lista partners recomendados para el apartamento.',

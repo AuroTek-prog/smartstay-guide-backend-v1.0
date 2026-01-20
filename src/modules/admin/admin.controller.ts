@@ -5,7 +5,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AdminGuard } from './guards/admin.guard';
 import { CurrentUser } from '../firebase-auth/decorators/current-user.decorator';
-import { OptionalAuth } from '../firebase-auth/decorators/optional-auth.decorator';
+import { RequireAuth } from '../firebase-auth/decorators/require-auth.decorator';
 import { FirebaseUser } from '../firebase-auth/interfaces/firebase-user.interface';
 import { resolveUserId } from '../../common/auth/user-context';
 
@@ -24,8 +24,9 @@ import { resolveUserId } from '../../common/auth/user-context';
  */
 @ApiTags('Admin')
 @Controller('api/admin')
-@OptionalAuth()
+@RequireAuth()
 @UseGuards(AdminGuard)
+@ApiBearerAuth()
 export class AdminController {
   private readonly logger = new Logger(AdminController.name);
 

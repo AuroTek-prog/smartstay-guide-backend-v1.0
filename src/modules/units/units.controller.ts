@@ -1,10 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UnitsService } from './units.service';
 import { CreateUnitDto, UpdateUnitDto } from './units.dto';
+import { RequireAuth } from '../firebase-auth/decorators/require-auth.decorator';
 
 @ApiTags('units')
 @Controller('units')
+@RequireAuth()
+@ApiBearerAuth()
 export class UnitsController {
   constructor(private readonly unitsService: UnitsService) {}
 

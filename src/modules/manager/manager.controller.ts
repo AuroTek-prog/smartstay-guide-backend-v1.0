@@ -4,7 +4,7 @@ import { ManagerService } from './manager.service';
 import { CreateApartmentDto } from './dto/create-apartment.dto';
 import { UpdateApartmentDto } from './dto/update-apartment.dto';
 import { CurrentUser } from '../firebase-auth/decorators/current-user.decorator';
-import { OptionalAuth } from '../firebase-auth/decorators/optional-auth.decorator';
+import { RequireAuth } from '../firebase-auth/decorators/require-auth.decorator';
 import { FirebaseUser } from '../firebase-auth/interfaces/firebase-user.interface';
 import { resolveUserId } from '../../common/auth/user-context';
 
@@ -25,7 +25,7 @@ import { resolveUserId } from '../../common/auth/user-context';
  */
 @ApiTags('Manager')
 @Controller('api/manager/apartments')
-@OptionalAuth()
+@RequireAuth()
 export class ManagerController {
   private readonly logger = new Logger(ManagerController.name);
 

@@ -1,10 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto, UpdateCompanyDto } from './companies.dto';
+import { RequireAuth } from '../firebase-auth/decorators/require-auth.decorator';
 
 @ApiTags('companies')
 @Controller('companies')
+@RequireAuth()
+@ApiBearerAuth()
 export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}
 

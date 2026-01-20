@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Body, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { SurveysService } from './surveys.service';
 import { CreateSurveyResponseDto } from './surveys.dto';
+import { RequireAuth } from '../firebase-auth/decorators/require-auth.decorator';
 
 @ApiTags('surveys')
 @Controller('surveys')
@@ -32,6 +33,8 @@ export class SurveysController {
   }
 
   @Get('unit/:unitId')
+  @RequireAuth()
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Respuestas por unidad', description: 'Lista respuestas de encuestas por unidad.' })
   @ApiParam({ name: 'unitId', description: 'ID de la unidad', example: '22222222-2222-2222-2222-222222222222' })
   @ApiResponse({ status: 200, description: 'Respuestas de la unidad' })

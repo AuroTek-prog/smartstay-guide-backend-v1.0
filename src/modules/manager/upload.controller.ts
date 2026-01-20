@@ -15,7 +15,7 @@ import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync, unlinkSync, readdirSync } from 'fs';
-import { OptionalAuth } from '../firebase-auth/decorators/optional-auth.decorator';
+import { RequireAuth } from '../firebase-auth/decorators/require-auth.decorator';
 import { CurrentUser } from '../firebase-auth/decorators/current-user.decorator';
 import { FirebaseUser } from '../firebase-auth/interfaces/firebase-user.interface';
 import { resolveUserId } from '../../common/auth/user-context';
@@ -56,7 +56,7 @@ function imageFileFilter(
  */
 @ApiTags('Manager - Upload')
 @Controller('api/manager/upload')
-@OptionalAuth()
+@RequireAuth()
 export class UploadController {
   private readonly logger = new Logger(UploadController.name);
   private readonly uploadPath = join(process.cwd(), 'assets', 'images', 'apartments');
