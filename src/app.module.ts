@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from './common/prisma.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { UnitsModule } from './modules/units/units.module';
+import { PartnersModule } from './modules/partners/partners.module';
 import { GuidesModule } from './modules/guides/guides.module';
 import { SurveysModule } from './modules/surveys/surveys.module';
 import { PublicApiModule } from './modules/public-api/public-api.module';
@@ -20,6 +21,7 @@ import { LocalAuthModule } from './modules/local-auth/local-auth.module';
     PrismaModule,
     CompaniesModule,
     UnitsModule,
+    PartnersModule,
     GuidesModule,
     SurveysModule,
     PublicApiModule,

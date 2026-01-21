@@ -67,12 +67,12 @@ backend/
 
 ## ⚡ Endpoints Clave
 
-### Public API (sin auth de usuario)
+### Public API (requiere auth de huésped)
 
 ```
-GET  /api/public/guide/:slug?lang=es
-GET  /api/public/essentials/:slug
-GET  /api/public/recommendations/:slug
+GET  /api/public/guide/:slug?lang=es      (auth)
+GET  /api/public/essentials/:slug         (auth)
+GET  /api/public/recommendations/:slug    (auth)
 POST /api/public/actions/open-lock
 ```
 
@@ -118,6 +118,36 @@ GET  /api/billing/stats
 * Encriptación AES-256-CBC para datos sensibles
 * Rate limiting y CORS configurables
 * 2FA para cuentas admin recomendado
+
+---
+
+## 🔐 Firebase Auth (configuración)
+
+### Backend (NestJS)
+Variables requeridas si `FIREBASE_ENABLED=true`:
+```
+FIREBASE_ENABLED=true
+FIREBASE_SERVICE_ACCOUNT_PATH=/ruta/al/firebase-service-account.json
+```
+
+Alternativa con credenciales inline:
+```
+FIREBASE_PROJECT_ID=...
+FIREBASE_CLIENT_EMAIL=...
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+Por qué:
+- El backend valida el **ID token** en cada request protegido.
+- Sin credenciales, la app falla al iniciar en producción.
+
+### Frontend (Web/Móvil)
+1) Habilita proveedores en Firebase Console → **Authentication**.
+2) Inicia sesión con Firebase SDK (Google/Apple/Email).
+3) Envía el ID token al backend:
+```
+Authorization: Bearer <ID_TOKEN>
+```
 
 ---
 
