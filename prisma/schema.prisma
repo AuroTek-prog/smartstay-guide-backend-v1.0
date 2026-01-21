@@ -80,6 +80,7 @@ model User {
   partners     Partner[] // CHANGE: Nueva relación (FASE 1)
   activityLogs ActivityLog[] // CHANGE: Nueva relación (FASE 1)
   billingHistory BillingHistory[] // CHANGE: Nueva relación (FASE 4)
+  notificationSubscriptions NotificationSubscription[]
 
   @@index([firebaseUid])
   @@map("users")
@@ -595,4 +596,19 @@ model BillingHistory {
   @@index([status])
   @@map("billing_history")
   @@schema("billing")
+}
+
+model NotificationSubscription {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  token     String   @unique
+  platform  String?  // web, ios, android
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("notification_subscriptions")
+  @@schema("core")
 }

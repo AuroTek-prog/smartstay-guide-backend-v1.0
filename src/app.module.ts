@@ -15,6 +15,8 @@ import { EmailModule } from './modules/email/email.module'; // CHANGE: FASE 9 - 
 import { AnalyticsModule } from './modules/analytics/analytics.module'; // CHANGE: FASE 10 - Métricas
 import { HealthModule } from './modules/health/health.module';
 import { LocalAuthModule } from './modules/local-auth/local-auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { LocalAuthModule } from './modules/local-auth/local-auth.module';
     AnalyticsModule, // CHANGE: FASE 10
     HealthModule,
     LocalAuthModule,
+    UsersModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

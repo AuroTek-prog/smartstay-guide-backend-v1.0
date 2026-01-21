@@ -20,6 +20,7 @@ import { resolveUserId } from '../../common/auth/user-context';
  * - PUT    /api/admin/users/:id     → Actualizar usuario
  * - DELETE /api/admin/users/:id     → Eliminar (soft delete)
  * - GET    /api/admin/companies     → Listar empresas
+ * - GET    /api/admin/partners      → Listar partners
  * - GET    /api/admin/stats         → Estadísticas globales
  */
 @ApiTags('Admin')
@@ -124,6 +125,22 @@ export class AdminController {
     const adminId = resolveUserId(user, 'demo-admin');
     this.logger.log(`[GET /admin/companies] Admin ${adminId}`);
     return this.adminService.listCompanies();
+  }
+
+  /**
+   * CHANGE: Listar partners
+   */
+  @Get('partners')
+  @ApiOperation({
+    summary: 'Listar todos los partners',
+    description: 'Lista partners con company, tipo y usuario asociado.',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de partners' })
+  @ApiBearerAuth()
+  async listPartners(@CurrentUser() user?: FirebaseUser) {
+    const adminId = resolveUserId(user, 'demo-admin');
+    this.logger.log(`[GET /admin/partners] Admin ${adminId}`);
+    return this.adminService.listPartners();
   }
 
   /**

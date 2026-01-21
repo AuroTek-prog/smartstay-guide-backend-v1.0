@@ -13,7 +13,16 @@ export class PartnerTypesController {
 
   @Get()
   @ApiOperation({ summary: 'Listar tipos de partner' })
-  @ApiResponse({ status: 200, description: 'Lista de tipos' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de tipos',
+    schema: {
+      example: [
+        { id: 'RESTAURANT', name: 'Restaurante' },
+        { id: 'CAFE', name: 'Cafeteria' },
+      ],
+    },
+  })
   list() {
     return this.partnerTypesService.list();
   }
@@ -21,7 +30,11 @@ export class PartnerTypesController {
   @Get(':id')
   @ApiOperation({ summary: 'Obtener tipo de partner por id' })
   @ApiParam({ name: 'id', description: 'ID del tipo', example: 'RESTAURANT' })
-  @ApiResponse({ status: 200, description: 'Tipo encontrado' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tipo encontrado',
+    schema: { example: { id: 'RESTAURANT', name: 'Restaurante' } },
+  })
   @ApiResponse({ status: 404, description: 'Tipo no encontrado' })
   getById(@Param('id') id: string) {
     return this.partnerTypesService.getById(id);
@@ -30,7 +43,11 @@ export class PartnerTypesController {
   @Post()
   @ApiOperation({ summary: 'Crear tipo de partner' })
   @ApiBody({ type: CreatePartnerTypeDto })
-  @ApiResponse({ status: 201, description: 'Tipo creado' })
+  @ApiResponse({
+    status: 201,
+    description: 'Tipo creado',
+    schema: { example: { id: 'RESTAURANT', name: 'Restaurante' } },
+  })
   create(@Body() payload: CreatePartnerTypeDto) {
     return this.partnerTypesService.create(payload);
   }
@@ -39,7 +56,11 @@ export class PartnerTypesController {
   @ApiOperation({ summary: 'Actualizar tipo de partner' })
   @ApiParam({ name: 'id', description: 'ID del tipo', example: 'RESTAURANT' })
   @ApiBody({ type: UpdatePartnerTypeDto })
-  @ApiResponse({ status: 200, description: 'Tipo actualizado' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tipo actualizado',
+    schema: { example: { id: 'RESTAURANT', name: 'Restaurante' } },
+  })
   @ApiResponse({ status: 404, description: 'Tipo no encontrado' })
   update(@Param('id') id: string, @Body() payload: UpdatePartnerTypeDto) {
     return this.partnerTypesService.update(id, payload);
@@ -48,7 +69,11 @@ export class PartnerTypesController {
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar tipo de partner' })
   @ApiParam({ name: 'id', description: 'ID del tipo', example: 'RESTAURANT' })
-  @ApiResponse({ status: 200, description: 'Tipo eliminado' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tipo eliminado',
+    schema: { example: { id: 'RESTAURANT', name: 'Restaurante' } },
+  })
   @ApiResponse({ status: 404, description: 'Tipo no encontrado' })
   remove(@Param('id') id: string) {
     return this.partnerTypesService.remove(id);

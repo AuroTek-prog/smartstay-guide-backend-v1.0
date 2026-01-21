@@ -139,6 +139,56 @@ export class StripeService {
   }
 
   /**
+   * Crea una sesión de checkout (suscripción)
+   */
+  async createCheckoutSession(params: {
+    priceId: string;
+    successUrl: string;
+    cancelUrl: string;
+    quantity?: number;
+    customerEmail?: string;
+    customerId?: string;
+  }): Promise<Stripe.Checkout.Session> {
+    const client = this.getClient();
+
+    return client.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [
+        {
+          price: params.priceId,
+          quantity: params.quantity || 1,
+        },
+      ],
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
+      customer: params.customerId,
+      customer_email: params.customerEmail,
+    });
+  }
+
+  /**
+   * Crea una sesión del portal de cliente
+   */
+  async createCustomerPortalSession(params: {
+    customerId: string;
+    returnUrl?: string;
+  }): Promise<Stripe.BillingPortal.Session> {
+    const client = this.getClient();
+    return client.billingPortal.sessions.create({
+      customer: params.customerId,
+      return_url: params.returnUrl,
+    });
+  }
+
+  /**
+   * Obtiene una suscripción por ID
+   */
+  async getSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+    const client = this.getClient();
+    return client.subscriptions.retrieve(subscriptionId);
+  }
+
+  /**
    * Construye evento de webhook validando signature
    * CRÍTICO: Esta validación previene ataques
    */

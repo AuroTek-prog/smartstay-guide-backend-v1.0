@@ -2,6 +2,8 @@ import { Injectable, ServiceUnavailableException, Logger } from '@nestjs/common'
 import { PrismaService } from '../../common/prisma.service';
 import { StripeService } from './stripe.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
+import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
+import { CreateCustomerPortalSessionDto } from './dto/create-customer-portal-session.dto';
 
 /**
  * Servicio principal de Billing
@@ -173,6 +175,73 @@ export class BillingService {
       failedTransactions: failed,
       refundedTransactions: refunded,
       totalRevenue: totalAmount._sum.amount || 0,
+    };
+  }
+
+  async createCheckoutSession(dto: CreateCheckoutSessionDto) {
+    this.ensureStripeEnabled();
+
+    const session = await this.stripeService.createCheckoutSession({
+      priceId: dto.priceId,
+      successUrl: dto.successUrl,
+      cancelUrl: dto.cancelUrl,
+      quantity: dto.quantity,
+      customerEmail: dto.customerEmail,
+      customerId: dto.customerId,
+    });
+
+    await this.prisma.billingHistory.create({
+      data: {
+        stripePaymentId: session.id,
+        stripeCustomerId: (session.customer as string) || null,
+        eventType: 'checkout.session.created',
+        status: 'pending',
+        metadata: {
+          priceId: dto.priceId,
+          quantity: dto.quantity || 1,
+          customerEmail: dto.customerEmail,
+        },
+      },
+    });
+
+    return {
+      id: session.id,
+      url: session.url,
+      customerId: session.customer,
+    };
+  }
+
+  async createCustomerPortalSession(dto: CreateCustomerPortalSessionDto) {
+    this.ensureStripeEnabled();
+    const session = await this.stripeService.createCustomerPortalSession({
+      customerId: dto.customerId,
+      returnUrl: dto.returnUrl,
+    });
+
+    return {
+      id: session.id,
+      url: session.url,
+    };
+  }
+
+  async getSubscriptionStatus(subscriptionId: string) {
+    this.ensureStripeEnabled();
+    const subscription = await this.stripeService.getSubscription(subscriptionId);
+
+    const currentPeriodStart = (subscription as any).current_period_start;
+    const currentPeriodEnd = (subscription as any).current_period_end;
+
+    return {
+      id: subscription.id,
+      status: subscription.status,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : null,
+      currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
+      customerId: subscription.customer,
+      plan: subscription.items.data.map((item) => ({
+        priceId: item.price.id,
+        quantity: item.quantity,
+      })),
     };
   }
 }

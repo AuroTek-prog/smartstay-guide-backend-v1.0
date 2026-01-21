@@ -11,12 +11,14 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBody, ApiParam } from '@nestjs/swagger';
 import { Request } from 'express';
 import { BillingService } from './billing.service';
 import { WebhookService } from './webhook.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 import { RequireAuth } from '../firebase-auth/decorators/require-auth.decorator';
+import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
+import { CreateCustomerPortalSessionDto } from './dto/create-customer-portal-session.dto';
 
 /**
  * Controlador de Billing
@@ -136,6 +138,57 @@ export class BillingController {
   }
 
   /**
+   * Crea una sesión de checkout (suscripción)
+   */
+  @Post('/checkout-session')
+  @RequireAuth()
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Crea sesión de checkout',
+    description: 'Genera una sesión de Stripe Checkout para suscripciones.',
+  })
+  @ApiBody({ type: CreateCheckoutSessionDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Checkout session creada',
+    schema: {
+      example: {
+        id: 'cs_test_123',
+        url: 'https://checkout.stripe.com/c/pay/cs_test_123',
+        customerId: 'cus_123',
+      },
+    },
+  })
+  async createCheckoutSession(@Body() dto: CreateCheckoutSessionDto) {
+    return this.billingService.createCheckoutSession(dto);
+  }
+
+  /**
+   * Crea una sesión de portal de cliente
+   */
+  @Post('/customer-portal-session')
+  @RequireAuth()
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Crea sesión de portal de cliente',
+    description: 'Genera enlace para gestionar suscripción en Stripe.',
+  })
+  @ApiBody({ type: CreateCustomerPortalSessionDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Portal session creada',
+    schema: {
+      example: {
+        id: 'bps_123',
+        url: 'https://billing.stripe.com/p/session/bps_123',
+      },
+    },
+  })
+  async createCustomerPortalSession(@Body() dto: CreateCustomerPortalSessionDto) {
+    return this.billingService.createCustomerPortalSession(dto);
+  }
+
+  /**
    * Obtiene estadísticas de billing
    * CHANGE: Endpoint para dashboard/analytics
    */
@@ -154,5 +207,35 @@ export class BillingController {
     @Query('userId') userId?: string,
   ) {
     return this.billingService.getBillingStats({ companyId, userId });
+  }
+
+  /**
+   * Obtiene estado de una suscripción
+   */
+  @Get('/subscription/status')
+  @RequireAuth()
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Estado de suscripción',
+    description: 'Devuelve estado y periodo actual de la suscripción.',
+  })
+  @ApiQuery({ name: 'subscriptionId', required: true, description: 'ID de suscripción en Stripe' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado de suscripción',
+    schema: {
+      example: {
+        id: 'sub_123',
+        status: 'active',
+        cancelAtPeriodEnd: false,
+        currentPeriodStart: '2026-01-01T00:00:00.000Z',
+        currentPeriodEnd: '2026-02-01T00:00:00.000Z',
+        customerId: 'cus_123',
+        plan: [{ priceId: 'price_123', quantity: 1 }],
+      },
+    },
+  })
+  async getSubscriptionStatus(@Query('subscriptionId') subscriptionId: string) {
+    return this.billingService.getSubscriptionStatus(subscriptionId);
   }
 }

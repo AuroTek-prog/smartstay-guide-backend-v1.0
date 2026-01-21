@@ -66,7 +66,17 @@ export class PublicApiController {
       example: { slug: 'sol-101', deviceId: 'device-123', token: 'otp-token' },
     },
   })
-  @ApiResponse({ status: 200, description: 'Operacion ejecutada' })
+  @ApiResponse({
+    status: 200,
+    description: 'Operacion ejecutada',
+    schema: {
+      example: {
+        success: true,
+        action: 'unlock',
+        provider: 'raixer',
+      },
+    },
+  })
   @ApiResponse({ status: 401, description: 'Token invalido o expirado' })
   async openLock(
     @Body() body: { slug: string; deviceId: string; token: string },
@@ -84,6 +94,17 @@ export class PublicApiController {
   @ApiResponse({
     status: 200,
     description: 'Configuración pública de Firebase',
+    schema: {
+      example: {
+        apiKey: 'AIza...',
+        authDomain: 'smartstay.firebaseapp.com',
+        projectId: 'smartstay-guide',
+        storageBucket: 'smartstay-guide.appspot.com',
+        messagingSenderId: '123456789',
+        appId: '1:123456789:web:abcdef',
+        measurementId: 'G-XXXXXXX',
+      },
+    },
   })
   getFirebaseConfig() {
     return {

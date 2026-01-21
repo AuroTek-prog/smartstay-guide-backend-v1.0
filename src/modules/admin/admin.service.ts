@@ -197,6 +197,28 @@ export class AdminService {
   }
 
   /**
+   * CHANGE: Listar partners
+   */
+  async listPartners() {
+    this.logger.log('[ADMIN] Listando partners');
+
+    return this.prisma.partner.findMany({
+      include: {
+        company: true,
+        type: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
    * CHANGE: Estadísticas globales
    */
   async getStats() {
