@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
 /**
@@ -14,6 +14,8 @@ import { Reflector } from '@nestjs/core';
  */
 @Injectable()
 export class AdminGuard implements CanActivate {
+  private readonly logger = new Logger(AdminGuard.name);
+
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -22,8 +24,11 @@ export class AdminGuard implements CanActivate {
 
     // SECURITY FIX: Nunca permitir acceso sin usuario
     if (!user) {
+      this.logger.warn('Acceso admin bloqueado: usuario no inyectado en request');
       throw new ForbiddenException('Autenticación requerida para acceso admin');
     }
+
+    this.logger.debug(`AdminGuard user uid=${user.uid || user.localUserId || 'unknown'} role=${user.role || 'none'} permissions=${Array.isArray(user.permissions) ? user.permissions.join(',') : 'none'}`);
 
     const permissions = Array.isArray(user.permissions) ? user.permissions : [];
     if (permissions.includes('admin:access') || permissions.includes('admin:*')) {
@@ -32,6 +37,7 @@ export class AdminGuard implements CanActivate {
 
     // Verificar rol ADMIN si no hay permisos definidos
     if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+      this.logger.warn(`Acceso admin bloqueado: role=${user.role || 'none'}`);
       throw new ForbiddenException('Requiere rol ADMIN');
     }
 

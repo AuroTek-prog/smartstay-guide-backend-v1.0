@@ -39,6 +39,7 @@ export class FirebaseAuthGuard implements CanActivate {
     }
 
     const authHeader = request.headers['authorization'];
+    this.logger.debug(`Authorization header present=${!!authHeader}`);
 
     // Verificar si el endpoint tiene @OptionalAuth()
     const isOptional = this.reflector.get<boolean>(
@@ -57,6 +58,7 @@ export class FirebaseAuthGuard implements CanActivate {
 
     // Soportar token local: "Local <token>"
     if (/^Local\s+/i.test(authHeader)) {
+      this.logger.debug('Using local token auth');
       const token = authHeader.replace(/^Local\s+/i, '');
       if (!token) {
         throw new UnauthorizedException('Formato de token inválido');
@@ -91,6 +93,7 @@ export class FirebaseAuthGuard implements CanActivate {
     }
 
     // Verificar token con Firebase
+    this.logger.debug('Verifying Firebase token');
     const firebaseUser = await this.firebaseAuthService.verifyToken(token);
 
     if (!firebaseUser) {
