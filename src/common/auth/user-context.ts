@@ -4,5 +4,5 @@ export function resolveUserId(
   user?: FirebaseUser,
   fallback = 'demo-user',
 ) {
-  return user?.uid || fallback;
+  return user?.localUserId || user?.uid || fallback;
 }
